@@ -1,0 +1,644 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โต๊ะข่าว — ระบบเตรียมข่าวส่งตรวจ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Sans+Thai+Looped:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    /* พื้นหลังและพื้นผิว */
+    --bg:#F3A24C;
+    --bg-deep:#E88A2C;
+    --on-bg:#5C340E;
+    --on-bg-strong:#3A1F06;
+    --ink:#FFFFFF;          /* พื้นการ์ด (ชื่อเดิมคงไว้เพื่อความเข้ากันได้) */
+    --ink-2:#FFFFFF;
+    --ink-3:#C9D2DC;        /* เส้นขอบ / แถบว่าง */
+    --rule:#DCE3EB;
+    /* ตัวอักษร */
+    --text:#16283C;
+    --muted:#61748A;
+    --paper:#FFFFFF;
+    --paper-2:#E7ECF2;
+    --paper-3:#A8B5C4;
+    /* สีสัญญาณ */
+    --amber:#E09B2D;
+    --amber-ink:#8A5A08;
+    --red:#C43F33;
+    --green:#2E8056;
+    --radius:4px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:linear-gradient(180deg,#F6AE60 0%,var(--bg) 42%,var(--bg-deep) 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+    color:var(--text);
+    font-family:'IBM Plex Sans Thai',system-ui,sans-serif;
+    font-size:15px; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px 80px}
+
+  /* ---------- masthead ---------- */
+  header{
+    border-bottom:2px solid rgba(58,31,6,.35);
+    padding:26px 0 16px; margin-bottom:26px;
+  }
+  .mast{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  h1{
+    color:var(--on-bg-strong);
+    font-family:'Noto Serif Thai',serif; font-weight:900;
+    font-size:clamp(26px,4.2vw,40px); margin:0; letter-spacing:-.5px;
+  }
+  h1 .dot{color:#FFFFFF}
+  .tag{
+    font-size:12px;color:var(--on-bg);letter-spacing:1.5px;
+    text-transform:uppercase; margin:0 0 4px;
+  }
+  .slug{
+    font-size:13px;color:var(--on-bg);
+    border-left:3px solid var(--on-bg-strong);padding-left:11px;max-width:340px;
+  }
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:1fr 400px;gap:26px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--paper); border:1px solid var(--rule);
+    border-radius:var(--radius); padding:20px; margin-bottom:20px;
+    box-shadow:0 2px 8px rgba(92,52,14,.13);
+  }
+  .card h2{
+    font-family:'Noto Serif Thai',serif;font-size:17px;font-weight:700;
+    margin:0 0 4px;
+  }
+  .card .hint{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+
+  .eyebrow{
+    font-size:11px;letter-spacing:1.8px;color:var(--amber-ink);
+    font-weight:600;margin:0 0 6px;text-transform:uppercase;
+  }
+
+  label{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px}
+  .req{color:var(--amber-ink);font-size:11px;font-weight:400;margin-left:6px}
+
+  input[type=text],textarea,select{
+    width:100%;background:#FBFCFD;color:var(--text);
+    border:1px solid var(--ink-3);border-radius:var(--radius);
+    padding:11px 12px;font-family:inherit;font-size:14.5px;line-height:1.6;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=text]::placeholder,textarea::placeholder{color:#9AA8B8}
+  input[type=text]:focus,textarea:focus,select:focus{
+    outline:none;border-color:var(--amber);background:#fff;
+    box-shadow:0 0 0 3px rgba(224,155,45,.20);
+  }
+  textarea{resize:vertical}
+  .field{margin-bottom:20px}
+
+  /* ---------- headline measure: the signature ---------- */
+  .measure{margin-top:9px}
+  .ruler{
+    position:relative;height:8px;background:#E9EEF3;
+    border:1px solid var(--ink-3);border-radius:2px;overflow:hidden;
+  }
+  .ruler i{
+    position:absolute;left:0;top:0;bottom:0;width:0%;
+    background:var(--green);transition:width .18s ease,background .18s;
+  }
+  .ruler b{
+    position:absolute;top:-3px;bottom:-3px;left:100%;width:2px;background:var(--amber-ink);
+  }
+  .mrow{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    margin-top:7px;font-size:12px;color:var(--muted);
+  }
+  .mrow strong{font-variant-numeric:tabular-nums;color:var(--text);font-weight:600}
+  .over{color:var(--red)!important}
+
+  .preview{
+    margin-top:14px;background:#fff;color:var(--text);
+    border:1px solid var(--rule);border-top:4px solid var(--text);
+    border-radius:0 0 var(--radius) var(--radius);padding:16px 18px;
+  }
+  .preview .kicker{
+    font-size:10.5px;letter-spacing:1.6px;color:var(--amber-ink);font-weight:600;margin-bottom:8px;
+  }
+  .preview .hl{
+    font-family:'Noto Serif Thai',serif;font-weight:900;
+    font-size:clamp(19px,2.6vw,25px);line-height:1.25;margin:0;
+  }
+  .preview .hl.empty{color:var(--paper-3);font-weight:500;font-size:17px}
+  .preview .ld{
+    margin:11px 0 0;font-size:14px;line-height:1.7;color:#33475C;
+    border-top:1px solid var(--paper-2);padding-top:11px;
+  }
+  .preview .ld.empty{color:var(--paper-3)}
+
+  /* ---------- chips ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    background:#F5F7FA;border:1px solid var(--ink-3);color:var(--text);
+    border-radius:20px;padding:6px 13px 6px 10px;font-size:13px;
+    font-family:inherit;transition:all .15s;user-select:none;
+  }
+  .chip:hover{border-color:var(--muted);background:#EFF3F7}
+  .chip .box{
+    width:15px;height:15px;border:1.5px solid var(--paper-3);border-radius:50%;
+    display:grid;place-items:center;font-size:10px;color:transparent;flex:none;
+  }
+  .chip.on{border-color:var(--green);background:rgba(46,128,86,.10)}
+  .chip.on .box{background:var(--green);border-color:var(--green);color:#fff}
+  .chip input{display:none}
+  .chip small{color:var(--muted);font-size:11.5px}
+  .chip.on small{color:#2A6647}
+
+  /* ---------- checklist ---------- */
+  .checks{list-style:none;margin:0;padding:0}
+  .checks li{
+    display:flex;gap:10px;align-items:flex-start;
+    padding:9px 0;border-bottom:1px solid var(--rule);font-size:13.5px;
+  }
+  .checks li:last-child{border-bottom:0}
+  .mark{
+    flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
+    font-size:11px;font-weight:700;margin-top:1px;
+    background:#F0F3F7;border:1.5px solid var(--ink-3);color:var(--muted);
+  }
+  .ok .mark{background:var(--green);border-color:var(--green);color:#fff}
+  .bad .mark{background:var(--red);border-color:var(--red);color:#fff}
+  .checks li span{color:var(--muted)}
+  .checks li.ok span{color:var(--text)}
+  .checks li.bad span{color:#8E2C22}
+  .checks em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+
+  .tally{
+    display:flex;align-items:baseline;gap:9px;margin:2px 0 14px;
+    font-family:'Noto Serif Thai',serif;
+  }
+  .tally b{font-size:32px;font-weight:900;line-height:1}
+  .tally span{font-size:13px;color:var(--muted);font-family:'IBM Plex Sans Thai',sans-serif}
+
+  /* ---------- buttons ---------- */
+  button{
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    border-radius:var(--radius);padding:11px 16px;border:1px solid transparent;
+    transition:all .15s;
+  }
+  .btn-main{background:var(--text);color:#fff;width:100%;font-size:15px}
+  .btn-main:hover{background:#0D1B2A}
+  .btn-ghost{background:#fff;color:var(--text);border-color:var(--ink-3)}
+  .btn-ghost:hover{border-color:var(--amber-ink);color:var(--amber-ink);background:#FFFBF3}
+  .btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}
+  .btn-row button{flex:1;min-width:120px}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.chip:focus-visible{
+    outline:2px solid var(--amber-ink);outline-offset:2px;
+  }
+
+  /* ---------- output ---------- */
+  #outBox{
+    width:100%;min-height:190px;background:#F7F9FB;color:var(--text);
+    border:1px dashed var(--paper-3);border-radius:var(--radius);
+    padding:13px;font-size:13px;line-height:1.75;font-family:inherit;
+  }
+  .flash{
+    font-size:13px;color:var(--green);margin-top:9px;min-height:19px;font-weight:600;
+  }
+  .flash.warn{color:#A5620B}
+
+  /* ---------- log ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--rule)}
+  th{font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:600}
+  td{vertical-align:top}
+  .pill{
+    display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600;
+  }
+  .pill.pass{background:rgba(46,128,86,.13);color:#20603E}
+  .pill.fail{background:rgba(196,63,51,.11);color:#96291E}
+  .empty-row{color:var(--muted);font-size:13px;padding:16px 0;text-align:center}
+  .mini{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .mini > div{flex:1;min-width:88px}
+  .mini label{font-size:12px;color:var(--muted);font-weight:500}
+  .mini input,.mini select{padding:8px 10px;font-size:13.5px}
+
+  .note{
+    background:#FFF8EC;border-left:3px solid var(--amber);
+    padding:11px 13px;font-size:12.5px;color:#6B4A10;border-radius:0 var(--radius) var(--radius) 0;
+  }
+  footer{
+    margin-top:34px;padding-top:18px;border-top:1px solid rgba(58,31,6,.3);
+    font-size:12.5px;color:var(--on-bg);line-height:1.9;
+  }
+  footer b{color:var(--on-bg-strong);font-weight:600}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="mast">
+    <div>
+      <p class="tag">ระบบเตรียมข่าวส่งตรวจ · ฉบับนักศึกษา</p>
+      <h1>โต๊ะข่าว<span class="dot">.</span></h1>
+    </div>
+    <p class="slug">เขียนที่นี่ ตรวจตัวเองที่นี่ แล้วกดคัดลอกไปวางใน AI ติวเตอร์ให้ตรวจให้คะแนน</p>
+  </div>
+</header>
+
+<div class="grid">
+  <!-- ========== LEFT: form ========== -->
+  <div>
+    <div class="card">
+      <p class="eyebrow">ขั้นที่ 1</p>
+      <h2>ระบุตัวตนและโจทย์</h2>
+      <p class="hint">ข้อมูลนี้จะติดไปกับข่าวตอนส่งตรวจ เพื่อให้ AI นับรอบการแก้ไขได้ถูก</p>
+      <div class="mini">
+        <div><label for="sName">ชื่อ-สกุล</label><input type="text" id="sName" placeholder="เช่น สมหญิง ใจงาม"></div>
+        <div><label for="sId">รหัสนักศึกษา</label><input type="text" id="sId" placeholder="6512345678"></div>
+        <div style="flex:0 0 128px"><label for="sSet">โจทย์ชุดที่</label>
+          <select id="sSet">
+            <option value="1">1 · อบรม</option>
+            <option value="2">2 · รางวัล</option>
+            <option value="3">3 · นวัตกรรม</option>
+            <option value="4">4 · ชุมชน</option>
+            <option value="5">5 · ชี้แจง</option>
+            <option value="อื่น ๆ">อื่น ๆ</option>
+          </select>
+        </div>
+        <div style="flex:0 0 92px"><label for="sRound">รอบที่</label><input type="text" id="sRound" value="1"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">ขั้นที่ 2</p>
+      <h2>เขียนข่าว</h2>
+      <p class="hint">แถบด้านล่างช่องพาดหัวคือหน้ากว้างจริงของคอลัมน์ข่าว ถ้าเลยเส้นสีเหลืองแปลว่ายาวเกินจนกูเกิลตัดทิ้ง</p>
+
+      <div class="field">
+        <label for="fHead">พาดหัวข่าว <span class="req">ไม่เกิน 70 ตัวอักษร</span></label>
+        <input type="text" id="fHead" placeholder="เช่น นักศึกษาเฮ! เปิดอบรมเขียนข่าว PR ฟรี รับตลาดขาดคน 1.2 หมื่นอัตรา">
+        <div class="measure">
+          <div class="ruler"><i id="rulerFill"></i><b></b></div>
+          <div class="mrow">
+            <span>ความยาว <strong id="cCount">0</strong> ตัวอักษร <span style="opacity:.6">(ไม่นับสระบน-ล่าง)</span></span>
+            <span id="cState">พิมพ์พาดหัวเพื่อเริ่ม</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fLead">ความนำ <span class="req">1–2 ประโยค เปิดด้วยจุดพีค</span></label>
+        <textarea id="fLead" rows="3" placeholder="สรุปประเด็นสำคัญที่สุดให้จบใน 1–2 ประโยค อ่านจบแล้วต้องรู้ว่าข่าวทั้งชิ้นพูดเรื่องอะไร"></textarea>
+        <div class="mrow"><span><strong id="lWords">0</strong> คำ · <strong id="lSent">0</strong> ประโยค</span><span id="lState"></span></div>
+      </div>
+
+      <div class="field" style="margin-bottom:0">
+        <label for="fBody">เนื้อหาข่าว <span class="req">300–500 คำ ย่อหน้าละ 1–2 ประโยค</span></label>
+        <textarea id="fBody" rows="11" placeholder="ขยายรายละเอียด เรียงจากสำคัญมากไปสำคัญน้อย ใส่ตัวเลข/สถิติ และโควทคำพูดอย่างน้อย 1 ประโยค"></textarea>
+        <div class="mrow"><span><strong id="bWords">0</strong> คำ · <strong id="bPara">0</strong> ย่อหน้า</span><span id="bState"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">ขั้นที่ 3</p>
+      <h2>ติดป้าย 5W+1H ที่คุณเขียนครบแล้ว</h2>
+      <p class="hint">กดเลือกเฉพาะตัวที่คุณ<b>ระบุข้อมูลจริงลงในข่าว</b> ไม่ใช่ตัวที่คิดไว้ในหัว</p>
+      <div class="chips" id="wChips"></div>
+      <div class="field" style="margin:16px 0 0">
+        <label for="fAsk">ข้อมูลที่ใบแจ้งข่าวไม่ได้ให้มา และต้องสอบถามเพิ่ม</label>
+        <input type="text" id="fAsk" placeholder="เช่น ไม่ระบุวันที่ดำเนินโครงการ — ต้องสอบถามหัวหน้าโครงการ">
+        <p class="hint" style="margin:7px 0 0">เขียนช่องนี้แทนการเดาข้อมูลเอง — การกุวันที่หรือตัวเลขคือความผิดจรรยาบรรณ ไม่ใช่แค่เสียคะแนน</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== RIGHT: preview + checks + output ========== -->
+  <div>
+    <div class="card">
+      <p class="eyebrow">ตัวอย่างหน้าข่าว</p>
+      <h2 style="margin-bottom:14px">คนอ่านจะเห็นแบบนี้</h2>
+      <div class="preview">
+        <div class="kicker" id="pvKick">โจทย์ชุดที่ 1</div>
+        <p class="hl empty" id="pvHead">พาดหัวจะปรากฏที่นี่</p>
+        <p class="ld empty" id="pvLead">ความนำจะปรากฏที่นี่</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">ขั้นที่ 4</p>
+      <h2>เช็กลิสต์ก่อนส่ง</h2>
+      <p class="hint">นี่คือการตรวจเบื้องต้นด้วยกลไกง่าย ๆ ไม่ใช่คะแนนจริง คะแนน 10 เต็มมาจาก AI ติวเตอร์เท่านั้น</p>
+      <div class="tally"><b id="tallyNum">0</b><span>/ 9 ข้อผ่าน</span></div>
+      <ul class="checks" id="checkList"></ul>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">ขั้นที่ 5</p>
+      <h2>คัดลอกไปวางใน AI ติวเตอร์</h2>
+      <p class="hint">กดปุ่มด้านล่าง แล้วนำไปวางในช่องแชทของ Gem / Claude Project / GPT ได้ทันที</p>
+      <textarea id="outBox" readonly></textarea>
+      <button class="btn-main" id="btnCopy" style="margin-top:11px">คัดลอกข่าวไปส่งตรวจ</button>
+      <div class="btn-row">
+        <button class="btn-ghost" id="btnSelect">เลือกทั้งหมด</button>
+        <button class="btn-ghost" id="btnTxt">ดาวน์โหลด .txt</button>
+      </div>
+      <p class="flash" id="flash"></p>
+      <p class="note" style="margin-top:12px">ถ้าปุ่มคัดลอกไม่ทำงานในเบราว์เซอร์ของคุณ ให้กด “เลือกทั้งหมด” แล้วกด Ctrl+C (หรือ Cmd+C) แทน</p>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">ขั้นที่ 6</p>
+      <h2>บันทึกผลที่ได้รับ</h2>
+      <p class="hint">กรอกคะแนนที่ AI ให้ เพื่อดูพัฒนาการของตัวเองทีละรอบ</p>
+      <div class="mini">
+        <div style="flex:0 0 96px"><label for="gScore">คะแนน</label><input type="text" id="gScore" placeholder="0–10"></div>
+        <div><label for="gFix">สิ่งที่ต้องแก้ในรอบถัดไป</label><input type="text" id="gFix" placeholder="เช่น เติม Why + ใส่โควท"></div>
+      </div>
+      <button class="btn-ghost" id="btnLog" style="width:100%">บันทึกลงตารางพัฒนาการ</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:6px">
+  <p class="eyebrow">ตารางพัฒนาการ</p>
+  <h2>ประวัติการส่งตรวจ</h2>
+  <p class="hint">แนบตารางนี้ไปกับใบงานตอนส่งอาจารย์ เพื่อแสดงกระบวนการแก้ไข</p>
+  <table>
+    <thead><tr><th style="width:52px">ชุด</th><th style="width:52px">รอบ</th><th>พาดหัว</th><th style="width:78px">คะแนน</th><th style="width:88px">ผล</th><th>ต้องแก้</th></tr></thead>
+    <tbody id="logBody"><tr><td colspan="6" class="empty-row">ยังไม่มีประวัติ — บันทึกผลรอบแรกเพื่อเริ่มต้น</td></tr></tbody>
+  </table>
+  <div class="btn-row"><button class="btn-ghost" id="btnClear" style="flex:0 0 auto">ล้างประวัติทั้งหมด</button></div>
+</div>
+
+<footer>
+  <b>โต๊ะข่าว</b> · เครื่องมือประกอบรายวิชากลยุทธ์การประชาสัมพันธ์ดิจิทัล<br>
+  ตรวจเบื้องต้นด้วยกลไกอัตโนมัติ คะแนนจริงมาจาก AI ติวเตอร์และอาจารย์ผู้สอน<br><br>
+  พัฒนาโดย <b>ผศ.ดร.เสกสรร สายสีสด</b><br>
+  สาขาวิชานิเทศศาสตร์ คณะวิทยาการจัดการ มหาวิทยาลัยราชภัฏอุดรธานี
+</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- helpers ---------- */
+  const $ = id => document.getElementById(id);
+  const COMBINING = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g;
+  const visualLen = s => [...s.replace(COMBINING,"")].length;
+  const wordCount = s => {
+    const t = s.trim(); if(!t) return 0;
+    // Thai has no spaces: approximate by characters/3 for Thai runs, plus latin words
+    const thai = (t.match(/[\u0E00-\u0E7F]/g)||[]).length;
+    const latin = (t.match(/[A-Za-z]+/g)||[]).length;
+    const nums  = (t.match(/\d+/g)||[]).length;
+    return Math.round(thai/3) + latin + nums;
+  };
+  const sentCount = s => (s.trim()? s.split(/[.!?。]|\s{2,}|\n/).filter(x=>x.trim().length>3).length : 0);
+
+  const VIVID = ["เฮ","ผงะ","ช็อก","ช็อค","ระทึก","เคาะแล้ว","ลุยแล้ว","เปิดใจ","แจงชัด","เคลียร์ปม","ปัง","สุดปัง","ซิว","คว้า","แห่","งัด","จัดเต็ม","ฟันธง","ทุบสถิติ","พุ่ง","ทะลุ","ครั้งแรก","เปิดตัว","ยกระดับ","สะพัด","ว้าว","อึ้ง","ตะลึง","ลั่น","เตรียมเฮ","ไม่ไหว","ดันสุด"];
+  const BAD_LEAD = ["ด้วย","เนื่องด้วย","ตามที่","สืบเนื่องจาก","อาศัยอำนาจ","ในการนี้"];
+  const WS = [
+    {k:"Who", th:"ใคร", d:"ชื่อ-ตำแหน่ง"},
+    {k:"What", th:"ทำอะไร", d:"เกิดอะไรขึ้น"},
+    {k:"When", th:"เมื่อไหร่", d:"วัน เดือน ปี"},
+    {k:"Where", th:"ที่ไหน", d:"สถานที่จริง"},
+    {k:"Why", th:"ทำไม", d:"เหตุผล ความสำคัญ"},
+    {k:"How", th:"อย่างไร", d:"วิธีการ ผลลัพธ์"}
+  ];
+
+  /* ---------- state ---------- */
+  const picked = new Set();
+  let log = [];
+  const LOGKEY = "newsdesk:log:v1";
+
+  /* ---------- build chips ---------- */
+  const chipWrap = $("wChips");
+  WS.forEach(w=>{
+    const el = document.createElement("button");
+    el.type="button"; el.className="chip"; el.dataset.k=w.k;
+    el.innerHTML = `<span class="box">✓</span><span>${w.k} <small>· ${w.th} (${w.d})</small></span>`;
+    el.addEventListener("click", ()=>{
+      picked.has(w.k) ? picked.delete(w.k) : picked.add(w.k);
+      el.classList.toggle("on", picked.has(w.k));
+      render();
+    });
+    chipWrap.appendChild(el);
+  });
+
+  /* ---------- checklist definition ---------- */
+  function evaluate(){
+    const head = $("fHead").value.trim();
+    const lead = $("fLead").value.trim();
+    const body = $("fBody").value.trim();
+    const all  = head+" "+lead+" "+body;
+
+    const vivid = VIVID.some(w=>head.includes(w));
+    const len   = visualLen(head);
+    const badOpen = BAD_LEAD.some(w=>lead.startsWith(w));
+    const hasNum  = /\d/.test(body) || /\d/.test(lead);
+    const hasQuote= /["“”«»]/.test(body) && /(กล่าว|เผย|ระบุ|เปิดเผย|ยืนยัน|แถลง|ชี้)/.test(body);
+    const paras   = body.split(/\n+/).filter(p=>p.trim()).length;
+
+    return [
+      {ok: head.length>0 && vivid,
+       t:"พาดหัวมีคำหวือหวาแบบข่าวออนไลน์",
+       e: head.length===0 ? "ยังไม่ได้เขียนพาดหัว" : (vivid? "พบคำเร้าอารมณ์แล้ว" : "ยังเป็นภาษาราชการ — ลองใส่ เฮ / เคาะแล้ว / คว้า / แจงชัด")},
+      {ok: len>0 && len<=70,
+       t:"พาดหัวยาวไม่เกิน 70 ตัวอักษร",
+       e: len===0 ? "—" : (len<=70 ? `ยาว ${len} ตัวอักษร กำลังดี` : `ยาว ${len} ตัวอักษร เกินมา ${len-70} ต้องตัดออก`)},
+      {ok: lead.length>0 && !badOpen,
+       t:"ความนำไม่ได้ขึ้นต้นแบบหนังสือราชการ",
+       e: lead.length===0 ? "ยังไม่ได้เขียนความนำ" : (badOpen ? `ขึ้นต้นด้วย “${BAD_LEAD.find(w=>lead.startsWith(w))}” — ลบทิ้งแล้วเริ่มด้วยจุดพีค` : "เปิดประเด็นได้ตรงจุด")},
+      {ok: lead.length>0 && wordCount(lead)<=60,
+       t:"ความนำกระชับใน 1–2 ประโยค",
+       e: lead.length===0 ? "—" : (wordCount(lead)<=60 ? `ประมาณ ${wordCount(lead)} คำ` : `ประมาณ ${wordCount(lead)} คำ ยาวเกินไป ให้ตัดเหลือใจความหลัก`)},
+      {ok: picked.size===6,
+       t:"ติดป้าย 5W+1H ครบทั้ง 6 ตัว",
+       e: picked.size===6 ? "ครบแล้ว" : `ยังขาด ${WS.filter(w=>!picked.has(w.k)).map(w=>w.k).join(", ")}`},
+      {ok: hasNum,
+       t:"มีตัวเลขหรือสถิติสนับสนุน",
+       e: hasNum ? "พบตัวเลขในข่าวแล้ว" : "ข่าวที่ไม่มีตัวเลขจะดูลอย ๆ ลองใส่จำนวนคน ยอดเงิน หรือเปอร์เซ็นต์"},
+      {ok: hasQuote,
+       t:"มีโควทคำพูดอย่างน้อย 1 ประโยค",
+       e: hasQuote ? "พบเครื่องหมายคำพูดพร้อมคำกริยารายงาน" : "ใส่คำพูดในเครื่องหมาย \"…\" พร้อมคำว่า กล่าว / เผย / ยืนยัน"},
+      {ok: paras>=3,
+       t:"ซอยย่อหน้าสั้นอย่างน้อย 3 ย่อหน้า",
+       e: paras>=3 ? `มี ${paras} ย่อหน้า` : `มี ${paras} ย่อหน้า — กด Enter แยกย่อหน้าให้อ่านบนมือถือง่ายขึ้น`},
+      {ok: wordCount(all)>=280,
+       t:"ความยาวรวมถึงเกณฑ์ 300–500 คำ",
+       e: `ตอนนี้ประมาณ ${wordCount(all)} คำ`}
+    ];
+  }
+
+  /* ---------- output block ---------- */
+  function buildOutput(){
+    const name = $("sName").value.trim() || "-";
+    const sid  = $("sId").value.trim() || "-";
+    const set  = $("sSet").value;
+    const rnd  = $("sRound").value.trim() || "1";
+    const ask  = $("fAsk").value.trim();
+    const missing = WS.filter(w=>!picked.has(w.k)).map(w=>w.k);
+
+    let out = `[ส่งตรวจ] ${name} · รหัส ${sid} · โจทย์ชุดที่ ${set} · รอบที่ ${rnd}\n\n`;
+    out += `พาดหัว: ${$("fHead").value.trim()}\n\n`;
+    out += `ความนำ: ${$("fLead").value.trim()}\n\n`;
+    out += `เนื้อหา: ${$("fBody").value.trim()}\n`;
+    if(ask) out += `\n[หมายเหตุ] ข้อมูลที่ใบแจ้งข่าวไม่ได้ให้มา ต้องสอบถามเพิ่ม: ${ask}\n`;
+    if(missing.length) out += `\n[ผู้เขียนแจ้ง] ยังไม่มั่นใจว่าเขียนครบใน: ${missing.join(", ")}\n`;
+    return out;
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    const head = $("fHead").value;
+    const lead = $("fLead").value;
+    const body = $("fBody").value;
+
+    // headline measure
+    const len = visualLen(head);
+    const pct = Math.min(len/70*100, 100);
+    const fill = $("rulerFill");
+    fill.style.width = pct+"%";
+    fill.style.background = len===0 ? "var(--ink-3)" : len>70 ? "var(--red)" : len>60 ? "var(--amber)" : "var(--green)";
+    const cc = $("cCount"); cc.textContent = len; cc.classList.toggle("over", len>70);
+    $("cState").textContent = len===0 ? "พิมพ์พาดหัวเพื่อเริ่ม"
+      : len>70 ? `เกินมา ${len-70} ตัวอักษร กูเกิลจะตัดทิ้ง`
+      : len>60 ? "ใกล้เต็มคอลัมน์แล้ว" : "ความยาวกำลังดี";
+    $("cState").className = len>70 ? "over" : "";
+
+    // counters
+    $("lWords").textContent = wordCount(lead);
+    $("lSent").textContent  = sentCount(lead);
+    $("bWords").textContent = wordCount(body);
+    $("bPara").textContent  = body.split(/\n+/).filter(p=>p.trim()).length;
+    const bw = wordCount(body);
+    $("bState").textContent = bw===0 ? "" : bw<250 ? "ยังสั้นไป" : bw>520 ? "ยาวเกินเกณฑ์" : "อยู่ในเกณฑ์";
+
+    // preview
+    $("pvKick").textContent = "โจทย์ชุดที่ " + $("sSet").value;
+    const ph = $("pvHead"), pl = $("pvLead");
+    ph.textContent = head.trim() || "พาดหัวจะปรากฏที่นี่";
+    ph.classList.toggle("empty", !head.trim());
+    pl.textContent = lead.trim() || "ความนำจะปรากฏที่นี่";
+    pl.classList.toggle("empty", !lead.trim());
+
+    // checklist
+    const res = evaluate();
+    const ul = $("checkList"); ul.innerHTML = "";
+    let pass = 0;
+    res.forEach(r=>{
+      if(r.ok) pass++;
+      const li = document.createElement("li");
+      li.className = r.ok ? "ok" : "bad";
+      li.innerHTML = `<span class="mark">${r.ok?"✓":"!"}</span><span>${r.t}<em>${r.e}</em></span>`;
+      ul.appendChild(li);
+    });
+    const tn = $("tallyNum");
+    tn.textContent = pass;
+    tn.style.color = pass>=8 ? "var(--green)" : pass>=5 ? "var(--amber)" : "var(--red)";
+
+    $("outBox").value = buildOutput();
+  }
+
+  ["fHead","fLead","fBody","fAsk","sName","sId","sRound"].forEach(id=>{
+    $(id).addEventListener("input", render);
+  });
+  $("sSet").addEventListener("change", render);
+
+  /* ---------- copy / download ---------- */
+  function flash(msg, warn){
+    const f = $("flash");
+    f.textContent = msg; f.className = "flash" + (warn?" warn":"");
+    setTimeout(()=>{ if(f.textContent===msg) f.textContent=""; }, 3200);
+  }
+  $("btnCopy").addEventListener("click", async ()=>{
+    const box = $("outBox");
+    try{
+      await navigator.clipboard.writeText(box.value);
+      flash("คัดลอกแล้ว — นำไปวางในช่องแชทของ AI ติวเตอร์ได้เลย");
+    }catch(e){
+      box.select(); box.setSelectionRange(0, box.value.length);
+      let done = false;
+      try{ done = document.execCommand("copy"); }catch(_){}
+      done ? flash("คัดลอกแล้ว — นำไปวางในช่องแชทของ AI ติวเตอร์ได้เลย")
+           : flash("เบราว์เซอร์ไม่อนุญาตให้คัดลอกอัตโนมัติ — ข้อความถูกเลือกไว้แล้ว กด Ctrl+C ต่อได้เลย", true);
+    }
+  });
+  $("btnSelect").addEventListener("click", ()=>{
+    const box = $("outBox"); box.focus(); box.select(); box.setSelectionRange(0, box.value.length);
+    flash("เลือกข้อความทั้งหมดแล้ว กด Ctrl+C หรือ Cmd+C เพื่อคัดลอก");
+  });
+  $("btnTxt").addEventListener("click", ()=>{
+    const name = ($("sName").value.trim()||"ข่าว")+"-ชุด"+$("sSet").value+"-รอบ"+($("sRound").value.trim()||"1");
+    const blob = new Blob([$("outBox").value], {type:"text/plain;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name+".txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+    flash("ดาวน์โหลดไฟล์แล้ว");
+  });
+
+  /* ---------- log: layered storage (artifact → browser → memory) ---------- */
+  async function saveLog(){
+    const data = JSON.stringify(log);
+    // 1) artifact storage (เมื่อเปิดในสภาพแวดล้อมที่รองรับ)
+    try{ if(window.storage && window.storage.set){ await window.storage.set(LOGKEY, data); return; } }catch(e){}
+    // 2) browser storage (เมื่อโฮสต์บน GitHub Pages / เว็บทั่วไป)
+    try{ window.localStorage.setItem(LOGKEY, data); }catch(e){}
+    // 3) ถ้าทั้งสองทางใช้ไม่ได้ ข้อมูลจะอยู่ในหน่วยความจำจนกว่าจะปิดหน้า
+  }
+  async function loadLog(){
+    let raw = null;
+    try{ if(window.storage && window.storage.get){ const r = await window.storage.get(LOGKEY); if(r && r.value) raw = r.value; } }catch(e){}
+    if(raw === null){ try{ raw = window.localStorage.getItem(LOGKEY); }catch(e){} }
+    try{ log = raw ? JSON.parse(raw) : []; }catch(e){ log = []; }
+    drawLog();
+  }
+  function drawLog(){
+    const tb = $("logBody");
+    if(!log.length){
+      tb.innerHTML = '<tr><td colspan="6" class="empty-row">ยังไม่มีประวัติ — บันทึกผลรอบแรกเพื่อเริ่มต้น</td></tr>';
+      return;
+    }
+    tb.innerHTML = "";
+    log.forEach(r=>{
+      const tr = document.createElement("tr");
+      const pass = Number(r.score) >= 7;
+      tr.innerHTML =
+        `<td>${r.set}</td><td>${r.round}</td>`+
+        `<td>${r.head ? r.head.replace(/</g,"&lt;") : "-"}</td>`+
+        `<td><strong>${r.score}</strong> / 10</td>`+
+        `<td><span class="pill ${pass?"pass":"fail"}">${pass?"ผ่าน":"ยังไม่ผ่าน"}</span></td>`+
+        `<td>${(r.fix||"-").replace(/</g,"&lt;")}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+  $("btnLog").addEventListener("click", ()=>{
+    const sc = parseFloat($("gScore").value);
+    if(isNaN(sc) || sc<0 || sc>10){ flash("กรอกคะแนนเป็นตัวเลข 0–10 ก่อนบันทึก", true); $("gScore").focus(); return; }
+    log.push({
+      set: $("sSet").value, round: $("sRound").value.trim()||"1",
+      head: $("fHead").value.trim().slice(0,60),
+      score: sc, fix: $("gFix").value.trim()
+    });
+    drawLog(); saveLog();
+    $("sRound").value = String((parseInt($("sRound").value)||1) + 1);
+    $("gScore").value = ""; $("gFix").value = "";
+    render();
+    flash(sc>=7 ? "บันทึกแล้ว — ผ่านเกณฑ์ 7 คะแนน ข่าวนี้เผยแพร่ได้" : "บันทึกแล้ว — เลื่อนไปรอบถัดไปให้อัตโนมัติ แก้แล้วส่งใหม่ได้เลย");
+  });
+  $("btnClear").addEventListener("click", ()=>{
+    log = []; drawLog(); saveLog(); flash("ล้างประวัติแล้ว");
+  });
+
+  render();
+  loadLog();
+})();
+</script>
